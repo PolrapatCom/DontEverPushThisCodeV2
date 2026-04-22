@@ -1,9 +1,10 @@
 name: DevSecOps Pipeline
+
 on:
 push:
-branches: [ main ]
+branches: ["*"]
 pull_request:
-branches: [ main ]
+branches: [main]
 
 permissions:
 contents: read
@@ -22,24 +23,24 @@ uses: actions/checkout@v4
 with:
 fetch-depth: 0
 
-```
-  - name: Run TruffleHog  
-    uses: trufflesecurity/trufflehog@main  
-    continue-on-error: true  
-    with:  
-      path: ./  
-      base: ${{ github.event.repository.default_branch }}  
-      head: HEAD  
-      extra_args: --only-verified  
 
-  - name: Run Gitleaks  
-    uses: gitleaks/gitleaks-action@v2  
-    continue-on-error: true  
-    env:  
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
-      GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true  
-      GITLEAKS_ENABLE_SUMMARY: true  
-```
+  - name: Run TruffleHog
+    uses: trufflesecurity/trufflehog@main
+    continue-on-error: true
+    with:
+      path: ./
+      base: ${{ github.event.repository.default_branch }}
+      head: HEAD
+      extra_args: --only-verified
+
+  - name: Run Gitleaks
+    uses: gitleaks/gitleaks-action@v2
+    continue-on-error: true
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+      GITLEAKS_ENABLE_SUMMARY: true
+
 
 sast-scan:
 runs-on: ubuntu-latest
@@ -51,13 +52,13 @@ uses: actions/checkout@v4
 with:
 fetch-depth: 0
 
-```
-  - name: SonarQube Scan  
-    uses: SonarSource/sonarqube-scan-action@v7.1.0  
-    continue-on-error: true  
-    env:  
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  
-```
+
+  - name: SonarQube Scan
+    uses: SonarSource/sonarqube-scan-action@v7.1.0
+    continue-on-error: true
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
 
 codeql-scan:
 runs-on: ubuntu-latest
@@ -65,23 +66,23 @@ needs: secret-scanning
 if: ${{ !cancelled() }}
 strategy:
 matrix:
-language: [ 'javascript' ]
+language: ["javascript"]
 steps:
 - name: Checkout code
 uses: actions/checkout@v4
 
-```
-  - name: Initialize CodeQL  
-    uses: github/codeql-action/init@v3  
-    with:  
-      languages: ${{ matrix.language }}  
-      queries: security-extended,security-and-quality  
 
-  - name: Perform CodeQL Analysis  
-    uses: github/codeql-action/analyze@v3  
-    with:  
-      category: "/language:${{ matrix.language }}"  
-```
+  - name: Initialize CodeQL
+    uses: github/codeql-action/init@v3
+    with:
+      languages: ${{ matrix.language }}
+      queries: security-extended,security-and-quality
+
+  - name: Perform CodeQL Analysis
+    uses: github/codeql-action/analyze@v3
+    with:
+      category: "/language:${{ matrix.language }}"
+
 
 dependency-scanning:
 runs-on: ubuntu-latest
@@ -91,43 +92,43 @@ steps:
 - name: Checkout code
 uses: actions/checkout@v4
 
-```
-  - name: Setup Node  
-    uses: actions/setup-node@v4  
-    with:  
-      node-version: 20  
 
-  - name: Install dependencies  
-    run: npm install  
+  - name: Setup Node
+    uses: actions/setup-node@v4
+    with:
+      node-version: 20
 
-  - name: Depcheck  
-    uses: dependency-check/Dependency-Check_Action@main  
-    continue-on-error: true  
-    id: Depcheck  
-    with:  
-      project: 'DontEverPushThisCodeV2'  
-      path: '.'  
-      format: 'SARIF'  
-      out: 'reports'  
-      args: >  
-        --failOnCVSS 7  
-        --enableRetired  
+  - name: Install dependencies
+    run: npm install
 
-  - name: Upload Depcheck SARIF to Security tab  
-    if: always()  
-    uses: github/codeql-action/upload-sarif@v3  
-    continue-on-error: true  
-    with:  
-      sarif_file: reports/dependency-check-report.sarif  
-      category: dependency-check  
+  - name: Depcheck
+    uses: dependency-check/Dependency-Check_Action@main
+    continue-on-error: true
+    id: Depcheck
+    with:
+      project: "DontEverPushThisCodeV2"
+      path: "."
+      format: "SARIF"
+      out: "reports"
+      args: >
+        --failOnCVSS 7
+        --enableRetired
 
-  - name: Upload Depcheck HTML report as artifact  
-    if: always()  
-    uses: actions/upload-artifact@v4  
-    with:  
-      name: depcheck-report  
-      path: reports/  
-```
+  - name: Upload Depcheck SARIF to Security tab
+    if: always()
+    uses: github/codeql-action/upload-sarif@v3
+    continue-on-error: true
+    with:
+      sarif_file: reports/dependency-check-report.sarif
+      category: dependency-check
+
+  - name: Upload Depcheck HTML report as artifact
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: depcheck-report
+      path: reports/
+
 
 image-scanning:
 runs-on: ubuntu-latest
@@ -137,29 +138,29 @@ steps:
 - name: Checkout code
 uses: actions/checkout@v4
 
-```
-  - name: Build Docker Image  
-    run: docker build -t my-app:latest .  
 
-  - name: Trivy Scan  
-    uses: aquasecurity/trivy-action@master  
-    continue-on-error: true  
-    with:  
-      image-ref: 'my-app:latest'  
-      format: 'sarif'  
-      output: 'trivy-results.sarif'  
-      severity: 'HIGH,CRITICAL'  
-      ignore-unfixed: true  
+  - name: Build Docker Image
+    run: docker build -t my-app:latest .
 
-  - name: Upload Trivy SARIF  
-    uses: github/codeql-action/upload-sarif@v3  
-    with:  
-      sarif_file: trivy-results.sarif  
-      category: trivy  
+  - name: Trivy Scan
+    uses: aquasecurity/trivy-action@master
+    continue-on-error: true
+    with:
+      image-ref: "my-app:latest"
+      format: "sarif"
+      output: "trivy-results.sarif"
+      severity: "HIGH,CRITICAL"
+      ignore-unfixed: true
 
-  - name: Upload Trivy artifact  
-    uses: actions/upload-artifact@v4  
-    with:  
-      name: trivy-results  
-      path: trivy-results.sarif  
-```
+  - name: Upload Trivy SARIF
+    uses: github/codeql-action/upload-sarif@v3
+    with:
+      sarif_file: trivy-results.sarif
+      category: trivy
+
+  - name: Upload Trivy artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: trivy-results
+      path: trivy-results.sarif
+
